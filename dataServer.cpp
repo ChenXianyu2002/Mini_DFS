@@ -23,6 +23,8 @@ void DataServer::operator()() {
             upload();
         else if (cmd == "read")
             read();
+        else if (cmd == "check")
+            check();
         else if (cmd == "clear") {
             clear();
             this->exist = false;
@@ -37,8 +39,6 @@ void DataServer::upload() {
     std::ofstream fout;
     std::ifstream fin;
     std::string chunkPath = datadir + std::to_string(fid) + "_";
-    std::vector<std::string> md5CheckSums;
-    std::string md5_checksum;
     int actual_size;
     for (auto chunkId: chunkIds) {
         fout.open(chunkPath + std::to_string(chunkId));
@@ -50,20 +50,6 @@ void DataServer::upload() {
         actual_size = std::min(chunkSize, bufSize - chunkId * chunkSize);
         fout.write(&buf[chunkId * chunkSize], actual_size);
         fout.close();
-
-        fin.open(chunkPath + std::to_string(chunkId), std::ios::ate | std::ios::binary);
-        if (!fin) {
-            std::cerr << "Open MD5 error in DataServer: (block name) " << chunkPath + std::to_string(chunkId)
-                      << std::endl;
-            continue;
-        }
-        fin.read(md5_buf, actual_size);
-        fin.close();
-        md5.update(md5_buf, actual_size);
-        md5.finalize();
-        md5_checksum = md5.toString();
-        md5CheckSums.push_back(md5_checksum);
-        md5.init();
     }
     chunkIds.clear();
 }
@@ -72,6 +58,7 @@ void DataServer::read() {
     std::ifstream fin;
     std::string chunkPath = datadir + std::to_string(fid) + "_";
     int actual_size;
+    md5CheckSums.clear();
     for (auto chunkId: chunkIds) {
         fin.open(chunkPath + std::to_string(chunkId), std::ios::ate | std::ios::binary);
         if (!fin) {
@@ -103,4 +90,28 @@ void DataServer::clear() {
     if (std::remove(datadir.c_str()) != 0) {
         std::cout << "Delete " << datadir << " Failed." << std::endl;
     }
+}
+
+void DataServer::check() {
+    std::ifstream fin;
+    std::string chunkPath = datadir + std::to_string(fid) + "_";
+    int actual_size;
+    md5CheckSums.clear();
+    for (auto chunkId: chunkIds) {
+        fin.open(chunkPath + std::to_string(chunkId), std::ios::ate | std::ios::binary);
+        if (!fin) {
+            std::cerr << "Open MD5 error in DataServer: (block name) " << chunkPath + std::to_string(chunkId)
+                      << std::endl;
+            continue;
+        }
+        actual_size = int(fin.tellg());
+        fin.seekg(0, std::ifstream::beg);
+        fin.read(md5_buf, actual_size);
+        fin.close();
+        md5.update(md5_buf, actual_size);
+        md5.finalize();
+        md5CheckSums.push_back(md5.toString());
+        md5.init();
+    }
+    chunkIds.clear();
 }

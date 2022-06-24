@@ -9,6 +9,7 @@
 #include <mutex>
 #include <vector>
 #include <condition_variable>
+#include <deque>
 #include "utils.h"
 
 class DataServer {
@@ -24,11 +25,14 @@ private:
 
     void clear();
 
+    void check();
+
 public:
 
     std::mutex mtx;
     std::condition_variable cv;
     std::string cmd;
+    std::deque<std::string> md5CheckSums;
     int fid{}, bufSize{}, chunkSize, firstOffset{0};
     char *buf{nullptr};
     char *md5_buf;

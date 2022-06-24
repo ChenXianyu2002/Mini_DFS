@@ -36,11 +36,11 @@ public:
 
     void operator()();
 
-    void set_read(int fid, char *buf);
+    void set_read(int fid, char *buf, const std::string &cmd = "read");
 
     void wait();
 
-    void set_upload(int fid,char *buf,int buf_size);
+    void set_upload(int fid, char *buf, int buf_size);
 
     ~NameServer();
 };

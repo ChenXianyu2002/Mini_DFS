@@ -293,6 +293,28 @@ void NameServer::operator()() {
             std::cout << buf << std::endl;
             delete[]buf;
             buf = nullptr;
+        } else if (parameters[0] == "check") {
+            if (parameters.size() < 2) {
+                std::cerr << "Usage: " << "check fid" << std::endl;
+                continue;
+            }
+            try {
+                fid = std::stoi(parameters[1]);
+            } catch (std::exception &e) {
+                std::cerr << e.what() << std::endl;
+                continue;
+            }
+            if (fid >= idNum) {
+                std::cerr << "No such FileID " << fid << std::endl;
+                continue;
+            }
+            std::vector<std::vector<int>> blocks_servers = files_chunk_servers[fid].second;
+            for (auto chunk = 0; chunk < blocks_servers.size(); ++chunk) {
+                for (int server_id = 0; server_id < blocks_servers[chunk].size(); ++server_id) {
+                    dataServers[blocks_servers[chunk][server_id]]->chunkIds.push_back(chunk);
+                }
+            }
+            set_read(fid, nullptr, "check");
         }
 
         // waiting for the finish of data server.
@@ -307,6 +329,26 @@ void NameServer::operator()() {
             delete dataServers[did];
             dataServers[did] = nullptr;
             dataServerBack[did] = nullptr;
+        } else if (parameters[0] == "check") {
+            std::vector<std::vector<int>> blocks_servers = files_chunk_servers[fid].second;
+            std::string md5_checksum;
+            bool flag = true;
+            for (const auto &block_servers: blocks_servers) {
+                md5_checksum.clear();
+                for (const auto &server_id: block_servers) {
+                    if (md5_checksum.empty()) {
+                        md5_checksum = dataServers[server_id]->md5CheckSums.front();
+                        dataServers[server_id]->md5CheckSums.pop_front();
+                    } else {
+                        if (md5_checksum != dataServers[server_id]->md5CheckSums.front()) {
+                            std::cout << "Check a MD5 difference!" << std::endl;
+                            flag = false;
+                        }
+                        dataServers[server_id]->md5CheckSums.pop_front();
+                    }
+                }
+            }
+            if (flag) std::cout << "Check MD5 success!" << std::endl;
         }
     }
 }
@@ -335,11 +377,11 @@ int NameServer::getAliveServers() {
     return aliveServers;
 }
 
-void NameServer::set_read(int fid, char *buf) {
+void NameServer::set_read(int fid, char *buf, const std::string &cmd) {
     for (auto server: dataServers) {
         if (server == nullptr) continue;
         std::unique_lock<std::mutex> lk(server->mtx);
-        server->cmd = "read";
+        server->cmd = cmd;
         server->fid = fid;
         server->bufSize = files_chunk_servers[fid].first;
         server->buf = buf;
