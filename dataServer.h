@@ -38,7 +38,7 @@ public:
     char *md5_buf;
     std::vector<int> chunkIds;
     bool finish{true};
-    MD5 md5;
+//    MD5 md5;
 
     explicit DataServer(int name_, int chunkSize_);
 

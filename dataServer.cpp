@@ -108,10 +108,7 @@ void DataServer::check() {
         fin.seekg(0, std::ifstream::beg);
         fin.read(md5_buf, actual_size);
         fin.close();
-        md5.update(md5_buf, actual_size);
-        md5.finalize();
-        md5CheckSums.push_back(md5.toString());
-        md5.init();
+        md5CheckSums.push_back(md5(md5_buf));
     }
     chunkIds.clear();
 }

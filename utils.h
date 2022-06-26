@@ -12,6 +12,7 @@
 
 std::vector<std::string> parse_cmd();
 
+std::string md5(const std::string &str);
 /*
  * Reference: https://github.com/joyeecheung/md5
  */
